@@ -24,8 +24,8 @@ jobs:
 
     - name: Create Fly App if not exists
       run: |
-        APP_NAME="ubuntu-server"
-        REGION="sin"  # Ubah region jika perlu
+        APP_NAME="untu"
+        REGION="iad"  # Ubah region jika perlu
         
         if ! fly apps list | grep -q "$APP_NAME"; then
           fly launch --name "$APP_NAME" --region "$REGION" --image ubuntu:22.04 --no-deploy
@@ -78,4 +78,5 @@ jobs:
         curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
         -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
         -d "text=$MESSAGE" \
+        -d "message_thread_id=167" \
         -d "parse_mode=Markdown"
