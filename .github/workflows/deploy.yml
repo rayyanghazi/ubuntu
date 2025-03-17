@@ -1,0 +1,81 @@
+name: Deploy Ubuntu Server to Fly.io
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Bisa dijalankan manual juga
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install Flyctl
+      run: |
+        curl -L https://fly.io/install.sh | sh
+        echo "$HOME/.fly/bin" >> $GITHUB_PATH
+
+    - name: Authenticate with Fly.io
+      run: fly auth token ${{ secrets.FLY_API_TOKEN }}
+
+    - name: Create Fly App if not exists
+      run: |
+        APP_NAME="ubuntu-server"
+        REGION="sin"  # Ubah region jika perlu
+        
+        if ! fly apps list | grep -q "$APP_NAME"; then
+          fly launch --name "$APP_NAME" --region "$REGION" --image ubuntu:22.04 --no-deploy
+        fi
+
+    - name: Deploy Ubuntu Server
+      run: |
+        fly deploy --image ubuntu:22.04 --app ubuntu-server --region sin --yes
+
+    - name: Install Basic Packages
+      run: |
+        fly ssh console -a ubuntu-server -C "
+        sudo apt update && sudo apt upgrade -y &&
+        sudo apt install -y \
+        build-essential software-properties-common \
+        ca-certificates locales wget curl git unzip zip tar \
+        nano vim screen htop neofetch tmux fail2ban ufw &&
+        sudo locale-gen en_US.UTF-8 &&
+        sudo update-locale LANG=en_US.UTF-8 &&
+        sudo ufw allow OpenSSH &&
+        sudo systemctl enable --now fail2ban
+        "
+
+    - name: Setup SSH Access
+      run: |
+        PASSWORD=$(openssl rand -base64 12)
+        fly ssh console -a ubuntu-server -C "
+        sudo useradd -m -s /bin/bash robby &&
+        echo 'robby:$PASSWORD' | sudo chpasswd &&
+        sudo usermod -aG sudo robby
+        "
+        echo "SSH_USER=robby" >> $GITHUB_ENV
+        echo "SSH_PASSWORD=$PASSWORD" >> $GITHUB_ENV
+
+    - name: Get Public IP
+      id: get-ip
+      run: |
+        IP=$(fly ips list -a ubuntu-server | awk '/v4/ {print $2}')
+        echo "PUBLIC_IP=$IP" >> $GITHUB_ENV
+
+    - name: Send Telegram Notification
+      run: |
+        MESSAGE="🖥️ *Ubuntu Server Deployed!*
+        🔹 IP: \`$PUBLIC_IP\`
+        🔹 SSH User: \`$SSH_USER\`
+        🔹 SSH Password: \`$SSH_PASSWORD\`
+        🔹 Installed: build-essential, curl, git, unzip, nano, vim, tmux, etc.
+        ⚡️ Ready to use!"
+        
+        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+        -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+        -d "text=$MESSAGE" \
+        -d "parse_mode=Markdown"
