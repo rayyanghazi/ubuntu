@@ -36,7 +36,7 @@ jobs:
 
     - name: Deploy Ubuntu Server
       run: |
-        fly deploy --image ubuntu:22.04 --app ubuntu-server --region sin --yes
+        fly deploy --image ubuntu:22.04 --app ubuntu-server --primary-region iad --yes
 
     - name: Install Basic Packages
       run: |
