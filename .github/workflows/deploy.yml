@@ -27,7 +27,7 @@ jobs:
 
     - name: Create Fly App if not exists
       run: |
-        APP_NAME="untu"
+        APP_NAME="wirasatya"
         REGION="iad"  # Ubah region jika perlu
         
         if ! fly apps list | grep -q "$APP_NAME"; then
@@ -36,11 +36,11 @@ jobs:
 
     - name: Deploy Ubuntu Server
       run: |
-        fly deploy --image ubuntu:22.04 --app untu --primary-region iad --yes
+        fly deploy --image ubuntu:22.04 --app wirasatya --primary-region iad --yes
 
     - name: Install Basic Packages
       run: |
-        fly ssh console -a untu -C "
+        fly ssh console -a wirasatya -C "
         sudo apt update && sudo apt upgrade -y &&
         sudo apt install -y \
         build-essential software-properties-common \
@@ -55,7 +55,7 @@ jobs:
     - name: Setup SSH Access
       run: |
         PASSWORD=$(openssl rand -base64 12)
-        fly ssh console -a untu -C "
+        fly ssh console -a wirasatya -C "
         sudo useradd -m -s /bin/bash robby &&
         echo 'robby:$PASSWORD' | sudo chpasswd &&
         sudo usermod -aG sudo robby
@@ -66,7 +66,7 @@ jobs:
     - name: Get Public IP
       id: get-ip
       run: |
-        IP=$(fly ips list -a untu | awk '/v4/ {print $2}')
+        IP=$(fly ips list -a wirasatya | awk '/v4/ {print $2}')
         echo "PUBLIC_IP=$IP" >> $GITHUB_ENV
 
     - name: Send Telegram Notification
