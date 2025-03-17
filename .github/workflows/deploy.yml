@@ -36,7 +36,8 @@ jobs:
 
     - name: Deploy Ubuntu Server
       run: |
-        fly deploy --image ubuntu:22.04 --app wirasatya --primary-region iad --yes
+        fly deploy --image ubuntu:22.04 --app wirasatya --primary-region iad --yes --command "sleep infinity"
+
 
     - name: Install Basic Packages
       run: |
